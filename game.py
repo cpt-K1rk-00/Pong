@@ -1,5 +1,7 @@
 import pygame
 
+# todo: -> personeles event um das Spiel zu beenden
+
 class Player(pygame.sprite.Sprite):
 	# Constructor. Pass the color of the Player and 
 	# it's x and y position.
@@ -24,13 +26,52 @@ class Player(pygame.sprite.Sprite):
 			self.rect.topleft = (self.rect.topleft[0], self.rect.topleft[1] - self.speed)
 
 
+class Ball(pygame.sprite.Sprite):
+	# Constructor
+	def __init__(self, x, y):
+		pygame.sprite.Sprite.__init__(self)
+		self.image = pygame.Surface((10,10))
+		self.image.fill((255, 255, 255))
+		self.rect = self.image.get_rect()
+		self.rect.topleft = (50,50)
+
+		# Flag that shows wether the ball is in game or not
+		self.shot = False
+		# shows the state of ball (0, 1, 2, 3)
+		self.state = 0
+
+	def update_position(self):
+		if self.state == 0:
+			if self.rect.topleft[1] > 0:
+				self.rect.topleft = (self.rect.topleft[0] + 1, self.rect.topleft[1] - 1)
+			else:
+				self.state = 1
+		elif self.state == 1:
+			if self.rect.topleft[1] < 340:
+				self.rect.topleft = (self.rect.topleft[0] + 1, self.rect.topleft[1] + 1)
+			else:
+				self.state = 0
+		elif self.state == 2:
+			if self.rect.topleft[1] < 340:
+				self.rect.topleft = (self.rect.topleft[0] - 1, self.rect.topleft[1] + 1)
+			else:
+				self.state = 3
+		elif self.state == 3:
+			if self.rect.topleft[1] > 0:
+				self.rect.topleft = (self.rect.topleft[0] - 1, self.rect.topleft[1] - 1)
+			else:
+				self.state = 2
 def main():
 	# zähler - bei jedem fünften Frame wird der User-Input verarbeitet
-	cnt = 0
+	player_cnt = 0
+	ball_cnt = 0
 
 	# Die Spieler erstellen
 	player_1 = Player((255, 255, 255), 10, 100, (2, 0))
 	player_2 = Player((255, 255, 255), 10, 100, (488,0))
+
+	# Den Ball erstellen
+	ball = Ball(100, 100)
 
 	# Pygame-Mododule initialisieren
 	# Fenster erstellen
@@ -38,7 +79,6 @@ def main():
 	screen = pygame.display.set_mode((500, 350))
 
 	# Titel des Fenster erstellen
-
 	# Mauszeiger unsichtbar machen
 	pygame.display.set_caption("Pong")
 	pygame.mouse.set_visible(0)
@@ -56,7 +96,7 @@ def main():
 				running = False
 
 		# Bewegungen bearbeiten
-		if cnt % 10 == 0:
+		if player_cnt % 10 == 0:
 			state =pygame.key.get_pressed()
 			if state[pygame.K_w]:
 				player_1.move_up()
@@ -67,16 +107,37 @@ def main():
 			elif state[pygame.K_UP]:
 				player_2.move_up()
 
+		if ball_cnt % 20 == 0:
+			# to the collision detection
+			if ball.rect.topleft[0] < 10 or ball.rect.topleft[0] > 488:
+				# Spiel beendet Event werfen
+				print("Spiel beendet")
+			else:
+				if player_2.rect.colliderect(ball.rect):
+					if ball.state == 0:
+						ball.state = 3
+					elif ball.state == 1:
+						ball.state = 2
+				elif player_1.rect.colliderect(ball.rect):
+					if ball.state == 2:
+						ball.state = 1
+					elif ball.state == 3:
+						ball.state = 0
+
+				ball.update_position()
+
 
 		# schwarzer Hintergrund
 		screen.fill((0,0,0))
 
-		# Die Spieler zeichnen
+		# Die Spieler & Ball zeichnen
 		screen.blit(player_1.image, player_1.rect)
 		screen.blit(player_2.image, player_2.rect)
+		screen.blit(ball.image, ball.rect)
 
 		# den Zähler erhöhen
-		cnt += 1
+		player_cnt += 1
+		ball_cnt += 1
 
 		# Das Bild aktualisieren
 		pygame.display.flip()
