@@ -61,6 +61,16 @@ class Ball(pygame.sprite.Sprite):
 				self.rect.topleft = (self.rect.topleft[0] - 1, self.rect.topleft[1] - 1)
 			else:
 				self.state = 2
+
+def display_text(message, screen):
+	font = pygame.font.SysFont("arial", 25)
+	text = font.render(message, True, (255, 255, 255))
+	textrect = text.get_rect()
+	textrect.topleft = (150,150)
+	screen.fill((0, 0, 0))
+	screen.blit(text, textrect)
+	pygame.display.flip()
+
 def main():
 	# zähler - bei jedem fünften Frame wird der User-Input verarbeitet
 	player_cnt = 0
@@ -88,6 +98,7 @@ def main():
 
 	#Schleife für das Spiel erstellen
 	running = True
+	ended = False
 	while running:
 		# Events abarbeiten
 		for event in pygame.event.get():
@@ -95,53 +106,59 @@ def main():
 			if event.type == pygame.QUIT:
 				running = False
 
-		# Bewegungen bearbeiten
-		if player_cnt % 10 == 0:
-			state =pygame.key.get_pressed()
-			if state[pygame.K_w]:
-				player_1.move_up()
-			elif state[pygame.K_s]:
-				player_1.move_down()
-			if state[pygame.K_DOWN]:
-				player_2.move_down()
-			elif state[pygame.K_UP]:
-				player_2.move_up()
+		if not ended:
+			# Bewegungen bearbeiten
+			if player_cnt % 10 == 0:
+				state =pygame.key.get_pressed()
+				if state[pygame.K_w]:
+					player_1.move_up()
+				elif state[pygame.K_s]:
+					player_1.move_down()
+				if state[pygame.K_DOWN]:
+					player_2.move_down()
+				elif state[pygame.K_UP]:
+					player_2.move_up()
 
-		if ball_cnt % 20 == 0:
-			# to the collision detection
-			if ball.rect.topleft[0] < 10 or ball.rect.topleft[0] > 488:
-				# Spiel beendet Event werfen
-				print("Spiel beendet")
+			if ball_cnt % 20 == 0:
+				# to the collision detection
+				if ball.rect.topleft[0] < 10 or ball.rect.topleft[0] > 488:
+					# Spiel beendet Event werfen
+					ended = True
+				else:
+					if player_2.rect.colliderect(ball.rect):
+						if ball.state == 0:
+							ball.state = 3
+						elif ball.state == 1:
+							ball.state = 2
+					elif player_1.rect.colliderect(ball.rect):
+						if ball.state == 2:
+							ball.state = 1
+						elif ball.state == 3:
+							ball.state = 0
+
+					ball.update_position()
+
+
+			# schwarzer Hintergrund
+			screen.fill((0,0,0))
+
+			# Die Spieler & Ball zeichnen
+			screen.blit(player_1.image, player_1.rect)
+			screen.blit(player_2.image, player_2.rect)
+			screen.blit(ball.image, ball.rect)
+
+			# den Zähler erhöhen
+			player_cnt += 1
+			ball_cnt += 1
+
+			# Das Bild aktualisieren
+			pygame.display.flip()
+		else:
+			# den Sieger ermitteln und ausgeben
+			if ball.rect.topleft[0] < 10:
+				display_text("Spieler 1 hat gewonnen", screen)
 			else:
-				if player_2.rect.colliderect(ball.rect):
-					if ball.state == 0:
-						ball.state = 3
-					elif ball.state == 1:
-						ball.state = 2
-				elif player_1.rect.colliderect(ball.rect):
-					if ball.state == 2:
-						ball.state = 1
-					elif ball.state == 3:
-						ball.state = 0
-
-				ball.update_position()
-
-
-		# schwarzer Hintergrund
-		screen.fill((0,0,0))
-
-		# Die Spieler & Ball zeichnen
-		screen.blit(player_1.image, player_1.rect)
-		screen.blit(player_2.image, player_2.rect)
-		screen.blit(ball.image, ball.rect)
-
-		# den Zähler erhöhen
-		player_cnt += 1
-		ball_cnt += 1
-
-		# Das Bild aktualisieren
-		pygame.display.flip()
-
+				display_text("Spieler 2 hat gewonnen", screen)
 
 if __name__ == "__main__":
 	# Main-Funktion aufrufen
