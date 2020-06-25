@@ -1,4 +1,6 @@
 import pygame
+import sys
+import time
 
 # todo: -> personeles event um das Spiel zu beenden
 
@@ -62,16 +64,15 @@ class Ball(pygame.sprite.Sprite):
 			else:
 				self.state = 2
 
-def display_text(message, screen):
+def display_text(message, screen, x=150, y=150):
 	font = pygame.font.SysFont("arial", 25)
 	text = font.render(message, True, (255, 255, 255))
 	textrect = text.get_rect()
-	textrect.topleft = (150,150)
-	screen.fill((0, 0, 0))
+	textrect.topleft = (x,y)
 	screen.blit(text, textrect)
 	pygame.display.flip()
 
-def main():
+def main(score_1=0, score_2=0, attached_1=True, attached_2=False):
 	# zähler - bei jedem fünften Frame wird der User-Input verarbeitet
 	player_cnt = 0
 	ball_cnt = 0
@@ -79,6 +80,10 @@ def main():
 	# Die Spieler erstellen
 	player_1 = Player((255, 255, 255), 10, 100, (2, 0))
 	player_2 = Player((255, 255, 255), 10, 100, (488,0))
+
+	# scores der Spieler
+	score_spieler_1 = score_1
+	score_spieler_2 = score_2
 
 	# Den Ball erstellen
 	ball = Ball(100, 100)
@@ -99,12 +104,27 @@ def main():
 	#Schleife für das Spiel erstellen
 	running = True
 	ended = False
+	ball_attached_player_1 = attached_1
+	ball_attached_player_2 = attached_2
+
+	# Score darstellen
+	display_text(str(score_spieler_1), screen, 10, 10)
+	display_text(str(score_spieler_2), screen, 470, 10)
+
+	#check if game is ended
+	if score_spieler_1 == 5 or score_spieler_2 == 5:
+		ended = True
+
+	if not ended:
+		time.sleep(3)
+
 	while running:
 		# Events abarbeiten
 		for event in pygame.event.get():
 			# Spiel beenden bei Quit-Event
 			if event.type == pygame.QUIT:
 				running = False
+				sys.exit(0)
 
 		if not ended:
 			# Bewegungen bearbeiten
@@ -118,12 +138,21 @@ def main():
 					player_2.move_down()
 				elif state[pygame.K_UP]:
 					player_2.move_up()
+				elif (ball_attached_player_1 or ball_attached_player_2) and state[pygame.K_SPACE]:
+					ball_attached_player_1 = False
+					ball_attached_player_2 = False
 
-			if ball_cnt % 20 == 0:
+			if ball_cnt % 20 == 0 and not ball_attached_player_1 and not ball_attached_player_2:
 				# to the collision detection
 				if ball.rect.topleft[0] < 10 or ball.rect.topleft[0] > 488:
-					# Spiel beendet Event werfen
-					ended = True
+					# scores anpassen
+					if ball.rect.topleft[0] < 10:
+						score_spieler_2 += 1
+						ball_attached_player_1 = True
+					else:
+						score_spieler_1 += 1
+						ball_attached_player_2 = True
+					running = False
 				else:
 					if player_2.rect.colliderect(ball.rect):
 						if ball.state == 0:
@@ -138,15 +167,19 @@ def main():
 
 					ball.update_position()
 
-
 			# schwarzer Hintergrund
 			screen.fill((0,0,0))
 
 			# Die Spieler & Ball zeichnen
 			screen.blit(player_1.image, player_1.rect)
 			screen.blit(player_2.image, player_2.rect)
+			# die Position des Balls an den Spieler anpassen
+			if ball_attached_player_1:
+				ball.rect.topleft = (player_1.rect.topleft[0] + 12, player_1.rect.topleft[1] + 47)
+			elif ball_attached_player_2:
+				ball.rect.topleft = (player_2.rect.topleft[0] - 10, player_2.rect.topleft[1] + 47)
 			screen.blit(ball.image, ball.rect)
-
+			
 			# den Zähler erhöhen
 			player_cnt += 1
 			ball_cnt += 1
@@ -155,10 +188,19 @@ def main():
 			pygame.display.flip()
 		else:
 			# den Sieger ermitteln und ausgeben
-			if ball.rect.topleft[0] < 10:
+			if score_spieler_1 == 5:
 				display_text("Spieler 1 hat gewonnen", screen)
 			else:
 				display_text("Spieler 2 hat gewonnen", screen)
+			# auf weiteren befehl warten
+			for event in pygame.event.get():
+				if event.type == pygame.KEYDOWN:
+					if event.key == pygame.K_r:
+						main()
+					elif event.key == pygame.K_ESCAPE:
+						sys.exit(0)					
+
+	main(score_spieler_1, score_spieler_2, ball_attached_player_1, ball_attached_player_2)
 
 if __name__ == "__main__":
 	# Main-Funktion aufrufen
